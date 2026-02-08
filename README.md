@@ -62,26 +62,7 @@ firebase deploy
 
 ---
 
-## 🎤 90-Second Judge Script (Demo)
 
-**(0:00 - 0:15) The Problem**
-"Construction delays cost the global economy billions every year. Why? Because tracking progress on remote sites with poor connectivity is a nightmare. Engineers are blind until it's too late."
-
-**(0:15 - 0:45) The Solution: Constructrack**
-"Enter Constructrack. It's an offline-first PWA.
-*Show Worker View*
-Here's a worker on a remote site. No signal? No problem. They scan a project QR code, snap a photo, and hitting save queues it instantly. As soon as they hit connectivity, it auto-syncs."
-
-**(0:45 - 0:70) AI Analysis & Dashboard**
-"*Show Engineer Dashboard*
-Back at HQ, the engineer sees this live. But we don't just show photos. Our AI analyzes them for quality and relevance. See this 'Red Flag'? The AI detected the photo doesn't match the foundation task.
-We visualize this on a Gantt chart and a Live Map."
-
-**(0:70 - 0:90) Impact**
-"And it doesn't stop there. Critical risks trigger automated WhatsApp alerts to stakeholders immediately.
-Constructrack: bridging the gap between the site and the office, online or offline."
-
----
 
 ## 🔧 Troubleshooting
 
