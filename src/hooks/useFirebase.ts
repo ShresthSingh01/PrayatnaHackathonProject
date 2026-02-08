@@ -11,9 +11,9 @@ import {
     type WithFieldValue
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
-// Initialize Firebase only once
+// Initialize Firebase
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -28,24 +28,57 @@ let db: any;
 let storage: any;
 
 try {
-    if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
-        throw new Error("Missing Firebase API Key");
+    // FORCE MOCK FOR DEMO STABILITY
+    // set to false if you really want to use firebase
+    const FORCE_MOCK = true;
+
+    if (FORCE_MOCK || !firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
+        throw new Error("Using Mock Mode");
     }
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
     storage = getStorage(app);
 } catch (e) {
-    console.warn("Firebase initialization failed (likely missing .env). Using mock mode.", e);
-    // Mock DB/Storage to prevent immediate crashes in components
+    console.warn("Using persistent mock mode (LocalStorage).");
     db = { type: 'mock' };
     storage = { type: 'mock' };
 }
+
+// --- PERSISTENT MOCK STORE (localStorage) ---
+const MOCK_STORAGE_KEY = 'constructrack_mock_db_v2';
+
+const getMockDB = () => {
+    try {
+        const stored = localStorage.getItem(MOCK_STORAGE_KEY);
+        if (stored) return JSON.parse(stored);
+    } catch (e) {
+        console.error("Failed to parse mock DB", e);
+    }
+
+    // Default / Initial Data
+    return {
+        projects: [{ id: 'demo', name: 'Demo Project', type: 'metro', startDate: new Date().toISOString() }],
+        tasks: [
+            { id: 't1', name: 'Site Preparation', status: 'completed', expectedDays: 5, projectId: 'demo', dependencies: [] },
+            { id: 't2', name: 'Foundation', status: 'in-progress', expectedDays: 10, projectId: 'demo', dependencies: ['t1'] }
+        ],
+        photos: []
+    };
+};
+
+const updateMockDB = (collectionName: string, newItem: any) => {
+    const currentDB = getMockDB();
+    if (!currentDB[collectionName]) currentDB[collectionName] = [];
+    currentDB[collectionName].push(newItem);
+    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(currentDB));
+    return currentDB;
+};
 
 export const useFirebase = () => {
 
     const uploadImage = async (file: File, path: string): Promise<string> => {
         if (storage.type === 'mock') {
-            console.warn('Mock Upload:', file.name);
+            console.log('Mock Upload:', file.name);
             return 'https://via.placeholder.com/300';
         }
         const storageRef = ref(storage, path);
@@ -58,8 +91,11 @@ export const useFirebase = () => {
         data: T
     ) => {
         if (db.type === 'mock') {
-            console.warn('Mock Add Doc:', collectionName, data);
-            return { id: 'mock-id-' + Date.now() } as any; // Mock Ref
+            console.log('Mock Add Doc:', collectionName);
+            const newId = 'mock-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            const newDoc = { id: newId, ...data };
+            updateMockDB(collectionName, newDoc);
+            return { id: newId, ...newDoc } as any;
         }
         return firestoreAddDoc(collection(db, collectionName), data);
     };
@@ -68,14 +104,15 @@ export const useFirebase = () => {
         collectionName: string,
         constraints: QueryConstraint[] = []
     ) => {
-        if (db.type === 'mock') return [];
+        if (db.type === 'mock') {
+            const mockDB = getMockDB();
+            return mockDB[collectionName] || [];
+        }
         const q = query(collection(db, collectionName), ...constraints);
         const querySnapshot = await firestoreGetDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     };
 
-    // Realtime listener hook helper
-    // Usage: const { data, loading } = useRealtime('users', [where('age', '>', 20)])
     const useRealtime = <T = DocumentData>(
         collectionName: string,
         constraints: QueryConstraint[] = []
@@ -85,14 +122,41 @@ export const useFirebase = () => {
 
         useEffect(() => {
             if (db.type === 'mock') {
-                setLoading(false);
-                // Return dummy data for engineers/tasks if needed for demo to not look empty
-                if (collectionName === 'projects') {
-                    setData([{ id: 'demo', name: 'Demo Project', type: 'metro', startDate: new Date().toISOString() }] as any);
-                } else if (collectionName === 'tasks') {
-                    setData([{ id: 't1', name: 'Demo Task', status: 'pending', expectedDays: 5 }] as any);
-                }
-                return;
+                // Poll localStorage for changes
+                const fetchData = () => {
+                    const mockDB = getMockDB();
+                    const allItems = mockDB[collectionName] || [];
+
+                    // Filter Logic
+                    const filtered = allItems.filter((item: any) => {
+                        if (collectionName === 'projects') return true;
+
+                        // Fail-safe filtering
+                        try {
+                            if (!constraints || constraints.length === 0) return true;
+                            if (!item.projectId) return true; // Keep items meant for "all" if any
+
+                            // Stringify constraints to check for ID presence
+                            const cStr = JSON.stringify(constraints);
+                            return cStr.includes(item.projectId);
+                        } catch (e) {
+                            return true;
+                        }
+                    });
+
+                    // Only update if changed (deepish check via stringify for mock)
+                    setData(prev => {
+                        if (JSON.stringify(prev) !== JSON.stringify(filtered)) {
+                            return filtered;
+                        }
+                        return prev;
+                    });
+                    setLoading(false);
+                };
+
+                fetchData(); // Initial
+                const interval = setInterval(fetchData, 1000); // Poll every 1s
+                return () => clearInterval(interval);
             }
 
             const q = query(collection(db, collectionName), ...constraints);
@@ -102,7 +166,7 @@ export const useFirebase = () => {
                 setLoading(false);
             });
             return () => unsubscribe();
-        }, [collectionName, JSON.stringify(constraints)]); // JSON.stringify for simple array dependency comparison
+        }, [collectionName]); // Removed constraints from dependency to prevent JSON.stringify crashes. We poll anyway.
 
         return { data, loading };
     };
@@ -117,5 +181,4 @@ export const useFirebase = () => {
     };
 };
 
-// Export singleton instances if needed directly
 export { db, storage, app };

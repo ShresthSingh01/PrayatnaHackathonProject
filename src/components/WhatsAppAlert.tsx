@@ -79,17 +79,35 @@ const WhatsAppAlert = ({ tasks }: WhatsAppAlertProps) => {
         }
     };
 
+    const handleManualTrigger = () => {
+        const riskyTask = tasks.find(t => t.riskFlag === 'RED' || t.riskFlag === 'YELLOW') || tasks[0];
+        if (riskyTask) {
+            if (confirm(`Send WhatsApp alert for ${riskyTask.name}?`)) {
+                sendWhatsAppMessage(riskyTask);
+                alert('Alert sent! (Check console for details if no token set)');
+            }
+        } else {
+            alert('No tasks available to alert.');
+        }
+    };
+
     return (
         <div className="fixed bottom-6 right-6 z-50">
-            <div className="bg-white p-3 rounded-full shadow-lg border border-gray-100 flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors" title="Automated Alerts Active">
+            <button
+                onClick={handleManualTrigger}
+                className="bg-white p-4 rounded-full shadow-xl border border-gray-100 flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-all active:scale-95 group"
+                title="Send WhatsApp Alert"
+            >
                 <div className="relative">
-                    <MessageSquare className="w-6 h-6 text-green-600" />
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                    </span>
+                    <MessageSquare className="w-8 h-8 text-green-600 group-hover:text-green-700 transition-colors" />
+                    {tasks.some(t => t.riskFlag === 'RED' || t.riskFlag === 'YELLOW') && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                    )}
                 </div>
-            </div>
+            </button>
         </div>
     );
 };

@@ -40,11 +40,30 @@ const GanttChart = ({ tasks, projectStartDate }: GanttChartProps) => {
     // In a real app, we'd run a critical path algorithm or simple accumulation.
     // Let's do simple accumulation assuming list order is roughly sequential for the templates we have.
 
+    if (!tasks || !tasks.length) {
+        return (
+            <div className="h-[500px] w-full bg-white p-8 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-gray-400">
+                <h3 className="text-lg font-bold text-gray-300 mb-2">No Timeline Data</h3>
+                <p className="text-sm">Create tasks to view project schedule</p>
+            </div>
+        );
+    }
+
+    const startDate = parseISO(projectStartDate);
+    if (isNaN(startDate.getTime())) {
+        console.error('Invalid Project Start Date:', projectStartDate);
+        return (
+            <div className="h-[500px] w-full bg-white p-8 rounded-xl border-red-100 border bg-red-50 flex items-center justify-center text-red-500">
+                Invalid Date Data
+            </div>
+        );
+    }
+
     let currentOffset = 0;
     const data = tasks.map(task => {
-        const start = addDays(parseISO(projectStartDate), currentOffset);
-        const end = addDays(start, task.expectedDays);
-        currentOffset += task.expectedDays; // Strictly sequential for visualization
+        const start = addDays(startDate, currentOffset);
+        const end = addDays(start, task.expectedDays || 1);
+        currentOffset += (task.expectedDays || 1);
 
         // Determine color
         let color = 'rgba(209, 213, 219, 0.8)'; // Gray - Pending
@@ -95,10 +114,14 @@ const GanttChart = ({ tasks, projectStartDate }: GanttChartProps) => {
             x: {
                 type: 'time',
                 time: {
-                    unit: 'month',
+                    unit: 'day',
                 },
-                min: parseISO(projectStartDate).getTime(),
+                // Remove fixed min to allow auto-scaling and avoid cutting off data
+                // min: parseISO(projectStartDate).getTime(), 
             },
+            y: {
+                beginAtZero: true
+            }
         },
     };
 

@@ -30,6 +30,7 @@ interface Task {
 const EngineerDashboard = () => {
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+    const [isCreating, setIsCreating] = useState(false); // Fix ReferenceError
 
     const { addDocument, useRealtime } = useFirebase();
 
@@ -49,18 +50,28 @@ const EngineerDashboard = () => {
     const [newProjectType, setNewProjectType] = useState<keyof typeof ganttTemplates>('metro');
 
     const handleCreateProject = async () => {
-        if (!newProjectName) return;
+        if (!newProjectName || isCreating) return;
 
-        try {
+        setIsCreating(true);
+        console.log('Starting project creation:', newProjectName, newProjectType);
+
+        // Safety timeout wrapper
+        const createWithTimeout = async () => {
             // 1. Create Project
             const projectRef = await addDocument('projects', {
                 name: newProjectName,
                 type: newProjectType,
                 startDate: new Date().toISOString()
             });
+            console.log('Project created:', projectRef.id);
 
             // 2. Create Tasks from Template
             const templateTasks = ganttTemplates[newProjectType];
+            if (!templateTasks) {
+                throw new Error('Invalid template type');
+            }
+
+            console.log('Creating tasks:', templateTasks.length);
             const batchPromises = templateTasks.map(t =>
                 addDocument('tasks', {
                     ...t,
@@ -71,79 +82,118 @@ const EngineerDashboard = () => {
             );
 
             await Promise.all(batchPromises);
+            console.log('All tasks created successfully');
 
-            setShowNewProjectModal(false);
-            setNewProjectName('');
+            return projectRef;
+        };
+
+        try {
+            // Race against a 5-second timeout
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Operation timed out - check connection')), 5000)
+            );
+
+            const projectRef = await Promise.race([
+                createWithTimeout(),
+                timeoutPromise
+            ]) as any;
+
+            // AUTO-SELECT the new project so data shows immediately
+            if (projectRef?.id) {
+                setSelectedProject({
+                    id: projectRef.id,
+                    name: newProjectName,
+                    type: newProjectType,
+                    startDate: new Date().toISOString()
+                });
+            }
+
         } catch (error) {
             console.error('Error creating project:', error);
-            alert('Failed to create project');
+            alert('Failed to create project: ' + (error as Error).message);
+        } finally {
+            // Always close the modal to prevent "stuck" state
+            console.log('Finally block executed - closing modal');
+            setIsCreating(false);
+            setShowNewProjectModal(false);
+            setNewProjectName('');
         }
     };
 
     const getRiskColor = (flag: string) => {
         switch (flag) {
-            case 'RED': return 'text-red-500 bg-red-50 border-red-200';
-            case 'YELLOW': return 'text-yellow-500 bg-yellow-50 border-yellow-200';
-            case 'GREEN': return 'text-green-500 bg-green-50 border-green-200';
-            default: return 'text-gray-500 bg-gray-50 border-gray-200';
+            case 'RED': return 'text-red-700 bg-red-50 border-red-100';
+            case 'YELLOW': return 'text-yellow-700 bg-yellow-50 border-yellow-100';
+            case 'GREEN': return 'text-green-700 bg-green-50 border-green-100';
+            default: return 'text-gray-500 bg-gray-50 border-gray-100';
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
+        <div className="min-h-screen bg-cream p-8 font-sans">
             <WhatsAppAlert tasks={tasks.map(t => ({
                 ...t,
                 riskFlag: computeRiskScore({ id: t.id, name: t.name }, []).flag
             }))} />
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto space-y-10">
 
                 {/* Header */}
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-end border-b border-gray-200 pb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Engineer Dashboard</h1>
-                        <p className="text-gray-500">Manage projects and monitor real-time progress</p>
+                        <h1 className="text-4xl font-serif text-primary-black tracking-tight mb-2">Engineer Dashboard</h1>
+                        <p className="text-gray-500 font-light">Overview of active construction sites</p>
                     </div>
-                    <button
-                        onClick={() => setShowNewProjectModal(true)}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        New Project
-                    </button>
-                    <a
-                        href="/worker"
-                        target="_blank"
-                        className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                        Worker App
-                    </a>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => {
+                                if (confirm('Reset all demo data? This will clear your projects.')) {
+                                    localStorage.removeItem('constructrack_mock_db_v2');
+                                    window.location.reload();
+                                }
+                            }}
+                            className="text-xs text-red-400 hover:text-red-600 font-medium px-4 py-2"
+                        >
+                            Reset Benchmark
+                        </button>
+                        <button
+                            onClick={() => setShowNewProjectModal(true)}
+                            className="flex items-center gap-2 bg-primary-black text-white px-6 py-3 rounded-full hover:bg-gray-800 transition-colors shadow-lg shadow-black/5"
+                        >
+                            <Plus className="w-4 h-4" />
+                            New Project
+                        </button>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
 
                     {/* Sidebar: Projects List */}
-                    <div className="space-y-4">
-                        <h2 className="font-semibold text-gray-700 uppercase text-xs tracking-wider">Active Projects</h2>
-                        <div className="space-y-2">
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="font-serif text-xl text-primary-black">Projects</h2>
+                            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{projects.length}</span>
+                        </div>
+
+                        <div className="space-y-3">
                             {projects.map(project => (
                                 <div
                                     key={project.id}
                                     onClick={() => setSelectedProject(project)}
-                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProject?.id === project.id
-                                        ? 'bg-white border-blue-500 shadow-md transform scale-[1.02]'
-                                        : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                                    className={`p-5 rounded-2xl cursor-pointer transition-all border ${selectedProject?.id === project.id
+                                        ? 'bg-white border-primary-black shadow-md'
+                                        : 'bg-transparent border-transparent hover:bg-white hover:border-gray-200'
                                         }`}
                                 >
-                                    <div className="font-medium text-gray-900">{project.name}</div>
-                                    <div className="flex justify-between items-center mt-2">
-                                        <span className="text-xs text-gray-500 capitalize">{project.type}</span>
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
+                                    <div className={`font-medium text-lg mb-1 ${selectedProject?.id === project.id ? 'text-primary-black' : 'text-gray-600'}`}>{project.name}</div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs text-gray-400 capitalize">{project.type}</span>
+                                        {selectedProject?.id === project.id && <div className="w-2 h-2 rounded-full bg-green-500"></div>}
                                     </div>
                                 </div>
                             ))}
 
                             {projects.length === 0 && (
-                                <div className="text-center p-8 text-gray-400 text-sm border-2 border-dashed rounded-xl">
+                                <div className="text-center p-8 text-gray-400 text-sm border border-dashed border-gray-300 rounded-2xl">
                                     No projects yet
                                 </div>
                             )}
@@ -151,102 +201,86 @@ const EngineerDashboard = () => {
                     </div>
 
                     {/* Main Content */}
-                    <div className="lg:col-span-3 space-y-6">
+                    <div className="lg:col-span-3 space-y-8">
                         {selectedProject ? (
                             <>
-                                {/* Project Overview Card */}
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-start">
-                                    <div className="flex-1">
-                                        <h2 className="text-2xl font-bold text-gray-800 mb-1">{selectedProject.name}</h2>
-                                        <p className="text-gray-500 text-sm mb-6">Started {new Date(selectedProject.startDate).toLocaleDateString()}</p>
-
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="bg-gray-50 p-4 rounded-xl">
-                                                <div className="text-gray-500 text-xs mb-1">Tasks</div>
-                                                <div className="text-2xl font-bold text-gray-900">{tasks.length}</div>
-                                            </div>
-                                            <div className="bg-gray-50 p-4 rounded-xl">
-                                                <div className="text-gray-500 text-xs mb-1">Progress</div>
-                                                <div className="text-2xl font-bold text-blue-600">
-                                                    {Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) || 0}%
-                                                </div>
-                                            </div>
-                                            <div className="bg-gray-50 p-4 rounded-xl">
-                                                <div className="text-gray-500 text-xs mb-1">Delays</div>
-                                                <div className="text-2xl font-bold text-red-500">
-                                                    {/* Placeholder for delay count logic */}
-                                                    0
-                                                </div>
-                                            </div>
+                                {/* Project Stats */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                        <div className="text-gray-400 text-xs uppercase tracking-wider mb-2">Total Tasks</div>
+                                        <div className="text-4xl font-serif text-primary-black">{tasks.length}</div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                        <div className="text-gray-400 text-xs uppercase tracking-wider mb-2">Completion</div>
+                                        <div className="text-4xl font-serif text-primary-black">
+                                            {Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) || 0}%
                                         </div>
                                     </div>
-
-                                    {/* QR Code Section */}
-                                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center gap-3">
-                                        <QRCodeSVG value={`${window.location.origin}/worker/${selectedProject.id}`} size={120} />
-                                        <span className="text-xs font-mono text-gray-500">{selectedProject.id}</span>
-                                        <span className="text-xs font-medium text-blue-600">Scan to Open Worker App</span>
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                        <div>
+                                            <div className="text-gray-400 text-xs uppercase tracking-wider mb-2">App Access</div>
+                                            <div className="text-sm text-gray-500">Scan to join</div>
+                                        </div>
+                                        <QRCodeSVG value={`${window.location.origin}/worker/${selectedProject.id}`} size={64} className="opacity-80" />
                                     </div>
                                 </div>
 
                                 {/* Visualizations Grid */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                                    {selectedProject && (
-                                        <>
-                                            <GanttChart tasks={tasks} projectStartDate={selectedProject.startDate} />
-                                            <LiveMap photos={[
-                                                {
-                                                    id: '1',
-                                                    url: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=300',
-                                                    location: { latitude: 37.7749, longitude: -122.4194 },
-                                                    caption: 'Foundation Work',
-                                                    timestamp: Date.now()
-                                                }
-                                            ]} />
-                                        </>
-                                    )}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                                        <h3 className="font-serif text-lg mb-4">Timeline</h3>
+                                        <GanttChart tasks={tasks} projectStartDate={selectedProject.startDate} />
+                                    </div>
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-[400px]">
+                                        <h3 className="font-serif text-lg mb-4 absolute z-10 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-lg">Live Activity</h3>
+                                        <LiveMap photos={[
+                                            {
+                                                id: '1',
+                                                url: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=300',
+                                                location: { latitude: 37.7749, longitude: -122.4194 },
+                                                caption: 'Foundation Work',
+                                                timestamp: Date.now()
+                                            }
+                                        ]} />
+                                    </div>
                                 </div>
 
                                 {/* Task List */}
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                        <h3 className="font-bold text-gray-800">Task Timeline</h3>
+                                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                                    <div className="p-8 border-b border-gray-100">
+                                        <h3 className="font-serif text-xl text-primary-black">Task Status</h3>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-gray-50 text-gray-500">
+                                            <thead className="bg-gray-50/50 text-gray-500">
                                                 <tr>
-                                                    <th className="px-6 py-3 font-medium">Task Name</th>
-                                                    <th className="px-6 py-3 font-medium">Expected Days</th>
-                                                    <th className="px-6 py-3 font-medium">Risk Analysis</th>
-                                                    <th className="px-6 py-3 font-medium">Status</th>
+                                                    <th className="px-8 py-4 font-medium tracking-wide">Task Name</th>
+                                                    <th className="px-8 py-4 font-medium tracking-wide">Duration</th>
+                                                    <th className="px-8 py-4 font-medium tracking-wide">Risk</th>
+                                                    <th className="px-8 py-4 font-medium tracking-wide">Status</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-100">
+                                            <tbody className="divide-y divide-gray-50">
                                                 {tasks.map(task => {
-                                                    // Mock analysis for now, would normally fetch analyzed photos for this task
                                                     const taskPhotos = photos.filter(p => p.taskId === task.id);
-
-                                                    // Add fallback for demo if no photos yet (keep it neutral/grey instead of red)
-                                                    // Or act strictly (Red if no photos)
                                                     const mockAnalysis = computeRiskScore({ id: task.id, name: task.name }, taskPhotos);
 
                                                     return (
-                                                        <tr key={task.id} className="hover:bg-gray-50 transition-colors">
-                                                            <td className="px-6 py-4 font-medium text-gray-900">{task.name}</td>
-                                                            <td className="px-6 py-4 text-gray-500">{task.expectedDays}d</td>
-                                                            <td className="px-6 py-4">
-                                                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${getRiskColor(mockAnalysis.flag)}`}>
+                                                        <tr key={task.id} className="hover:bg-gray-50/50 transition-colors">
+                                                            <td className="px-8 py-5 font-medium text-primary-black">{task.name}</td>
+                                                            <td className="px-8 py-5 text-gray-500">{task.expectedDays} days</td>
+                                                            <td className="px-8 py-5">
+                                                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getRiskColor(mockAnalysis.flag)}`}>
                                                                     {mockAnalysis.flag === 'RED' && <AlertTriangle className="w-3 h-3" />}
                                                                     {mockAnalysis.flag === 'YELLOW' && <Clock className="w-3 h-3" />}
                                                                     {mockAnalysis.flag === 'GREEN' && <CheckCircle className="w-3 h-3" />}
                                                                     {mockAnalysis.reason || 'No Data'}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-6 py-4">
-                                                                <span className={`px-2 py-1 rounded text-xs capitalize
-                                  ${task.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                                        task.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
+                                                            <td className="px-8 py-5">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize
+                                  ${task.status === 'completed' ? 'bg-green-50 text-green-700' :
+                                                                        task.status === 'in-progress' ? 'bg-blue-50 text-blue-700' :
                                                                             'bg-gray-100 text-gray-600'}`}>
                                                                     {task.status}
                                                                 </span>
@@ -260,9 +294,9 @@ const EngineerDashboard = () => {
                                 </div>
                             </>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-                                <BarChart3 className="w-16 h-16 mb-4 text-gray-300" />
-                                <p>Select a project to view dashboard</p>
+                            <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200 min-h-[500px]">
+                                <BarChart3 className="w-16 h-16 mb-4 text-gray-200" />
+                                <p className="font-serif text-lg text-gray-500">Select a project to view details</p>
                             </div>
                         )}
                     </div>
@@ -270,45 +304,45 @@ const EngineerDashboard = () => {
 
                 {/* New Project Modal */}
                 {showNewProjectModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl animate-in fade-in zoom-in duration-200">
-                            <h2 className="text-xl font-bold mb-4">Create New Project</h2>
-                            <div className="space-y-4">
+                    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                        <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-300">
+                            <h2 className="text-2xl font-serif font-bold mb-6 text-primary-black">New Project</h2>
+                            <div className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Project Name</label>
                                     <input
                                         type="text"
                                         value={newProjectName}
                                         onChange={e => setNewProjectName(e.target.value)}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="e.g., Downtown Metro Line"
+                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary-black/10 outline-none text-primary-black placeholder-gray-400 transition-all font-serif text-lg"
+                                        placeholder="e.g., Downtown Metro"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Template Type</label>
                                     <select
                                         value={newProjectType}
                                         onChange={e => setNewProjectType(e.target.value as any)}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary-black/10 outline-none text-primary-black cursor-pointer"
                                     >
                                         {Object.keys(ganttTemplates).map(type => (
                                             <option key={type} value={type} className="capitalize">{type}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div className="flex gap-3 justify-end mt-6">
+                                <div className="flex gap-3 justify-end mt-8">
                                     <button
                                         onClick={() => setShowNewProjectModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                        className="px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-full font-medium transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleCreateProject}
-                                        disabled={!newProjectName}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                        disabled={!newProjectName || isCreating}
+                                        className="px-8 py-3 bg-primary-black text-white rounded-full font-medium hover:bg-gray-800 disabled:opacity-50 transition-all shadow-lg shadow-black/10 flex items-center justify-center min-w-[120px]"
                                     >
-                                        Create Project
+                                        {isCreating ? 'Creating...' : 'Create'}
                                     </button>
                                 </div>
                             </div>

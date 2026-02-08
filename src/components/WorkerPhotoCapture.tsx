@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Camera, MapPin, QrCode, Wifi, WifiOff, UploadCloud, CheckCircle } from 'lucide-react';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import { useFirebase } from '../hooks/useFirebase';
 import { useParams } from 'react-router-dom';
 
 const WorkerPhotoCapture = () => {
@@ -86,77 +87,93 @@ const WorkerPhotoCapture = () => {
 
         try {
             await addToQueue(file, path);
-        };
+            setStatus('Saved!');
+        } catch (error) {
+            console.error(error);
+            setStatus('Error saving.');
+        }
+    };
 
-        return (
-            <div className="p-4 max-w-md mx-auto bg-white min-h-screen flex flex-col">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-xl font-bold text-gray-800">Site Capture</h1>
-                    <div className="flex items-center gap-2 text-sm">
-                        {isOnline ? <Wifi className="w-4 h-4 text-green-500" /> : <WifiOff className="w-4 h-4 text-red-500" />}
-                        <span className={isOnline ? 'text-green-600' : 'text-red-600'}>
-                            {isOnline ? 'Online' : 'Offline'}
-                        </span>
-                    </div>
+    return (
+        <div className="min-h-screen bg-cream font-sans flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-6 flex justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100">
+                <h1 className="text-2xl font-serif text-primary-black tracking-tight">Site Capture</h1>
+                <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        {isOnline ? 'Online' : 'Offline'}
+                    </span>
                 </div>
+            </div>
 
-                {/* Sync Status */}
+            <div className="flex-1 flex flex-col p-6 max-w-md mx-auto w-full">
+
+                {/* Sync Status Banner */}
                 {pendingCount > 0 && (
-                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
-                        <UploadCloud className="w-5 h-5 text-yellow-600 animate-pulse" />
-                        <div className="text-sm text-yellow-700">
-                            {pendingCount} photos pending upload
-                            {syncStatus === 'syncing' && ' (Syncing...)'}
+                    <div className="mb-8 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between animate-in slide-in-from-top-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center">
+                                <UploadCloud className="w-5 h-5 text-yellow-600" />
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium text-primary-black">{pendingCount} Pending</div>
+                                <div className="text-xs text-gray-400">{syncStatus === 'syncing' ? 'Syncing...' : 'Waiting for connection'}</div>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Main Action Area */}
-                <div className="flex-1 flex flex-col justify-center gap-6">
-
+                {/* Main Content */}
+                <div className="flex-1 flex flex-col justify-center gap-8">
                     {!projectId ? (
-                        <div className="text-center space-y-4">
+                        <div className="space-y-8 animate-in fade-in duration-500">
+                            <div className="text-center space-y-4">
+                                <h2 className="text-3xl font-serif text-primary-black">Welcome</h2>
+                                <p className="text-gray-500 font-light">Scan a project QR code to begin capturing site progress.</p>
+                            </div>
+
                             {scanning ? (
-                                <div id="reader" className="overflow-hidden rounded-lg shadow-lg"></div>
-                            ) : (
-                                <div
-                                    onClick={() => setScanning(true)}
-                                    className="p-10 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex flex-col items-center gap-4 cursor-pointer hover:bg-gray-100 transition-colors"
-                                >
-                                    <QrCode className="w-16 h-16 text-blue-500" />
-                                    <span className="text-gray-600 font-medium">Scan Project QR</span>
+                                <div className="overflow-hidden rounded-3xl shadow-2xl border-4 border-white">
+                                    <div id="reader"></div>
+                                    <button
+                                        onClick={() => setScanning(false)}
+                                        className="w-full py-4 bg-white text-red-500 font-medium border-t border-gray-100 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
                                 </div>
-                            )}
-                            {scanning && (
+                            ) : (
                                 <button
-                                    onClick={() => setScanning(false)}
-                                    className="text-red-500 font-medium hover:underline"
+                                    onClick={() => setScanning(true)}
+                                    className="w-full aspect-square rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-4 group hover:border-primary-black hover:bg-white transition-all bg-white shadow-sm"
                                 >
-                                    Cancel Scan
+                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <QrCode className="w-8 h-8 text-primary-black" />
+                                    </div>
+                                    <span className="font-medium text-gray-600 group-hover:text-primary-black">Scan Project QR</span>
                                 </button>
                             )}
-                            <div className="text-xs text-gray-400">
-                                Or visit /worker/PROJECT_ID
-                            </div>
                         </div>
                     ) : (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                            {/* Project Info */}
-                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                <div className="text-xs text-blue-500 uppercase font-bold tracking-wider mb-1">Active Project</div>
-                                <div className="text-lg font-semibold text-gray-900 break-all">{projectId}</div>
-                                <button
-                                    onClick={() => setProjectId(null)}
-                                    className="text-xs text-blue-600 hover:underline mt-2"
-                                >
-                                    Change Project
-                                </button>
+                        <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-500">
+                            {/* Project Card */}
+                            <div className="bg-primary-black text-white p-6 rounded-3xl shadow-xl shadow-black/10 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                                <div className="relative z-10">
+                                    <div className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">Current Project</div>
+                                    <div className="text-2xl font-serif mb-4">{projectId}</div>
+                                    <button
+                                        onClick={() => setProjectId(null)}
+                                        className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors backdrop-blur-sm"
+                                    >
+                                        Switch Project
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* Camera Action */}
-                            <label className="relative block group cursor-pointer">
+                            {/* Camera Trigger */}
+                            <label className="block relative cursor-pointer group">
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -164,39 +181,48 @@ const WorkerPhotoCapture = () => {
                                     className="hidden"
                                     onChange={handleCapture}
                                 />
-                                <div className="w-full aspect-square max-h-80 bg-gray-900 rounded-2xl flex flex-col items-center justify-center gap-4 text-white shadow-xl group-active:scale-95 transition-transform">
-                                    <Camera className="w-20 h-20" />
-                                    <span className="text-xl font-medium">Take Site Photo</span>
+                                <div className="w-full aspect-[4/5] bg-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center gap-6 relative overflow-hidden transition-all hover:bg-gray-200">
+                                    {/* Fake UI elements for aesthetic */}
+                                    <div className="absolute top-8 w-full px-8 flex justify-between opacity-30">
+                                        <div className="w-1/3 h-1 bg-black rounded-full"></div>
+                                        <div className="w-1/3 h-1 bg-black rounded-full"></div>
+                                    </div>
+
+                                    <div className="w-24 h-24 rounded-full border-4 border-gray-300 flex items-center justify-center group-hover:border-primary-black transition-colors bg-white shadow-sm">
+                                        <div className="w-20 h-20 rounded-full bg-primary-black group-active:scale-95 transition-transform"></div>
+                                    </div>
+                                    <span className="font-serif text-xl text-gray-500 group-hover:text-primary-black transition-colors">Tap to Capture</span>
                                 </div>
                             </label>
 
-                            {/* GPS Indicator */}
+                            {/* Location Pill */}
                             {location && (
-                                <div className="flex items-center justify-center gap-2 text-gray-400 text-xs">
+                                <div className="flex items-center justify-center gap-2 text-xs text-gray-400 bg-white/50 py-2 rounded-full backdrop-blur-sm">
                                     <MapPin className="w-3 h-3" />
-                                    <span>GPS: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</span>
+                                    <span>{location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</span>
                                 </div>
                             )}
                         </div>
                     )}
-
                 </div>
-
-                {/* Status Feedback */}
-                {status && (
-                    <div className={`fixed bottom-6 left-6 right-6 p-4 rounded-lg shadow-lg text-white font-medium text-center animate-in slide-in-from-bottom-2 fade-in ${status.includes('Error') ? 'bg-red-500' : 'bg-green-600'}`}>
-                        {status.includes('Uploaded') || status.includes('Saved') ? (
-                            <div className="flex items-center justify-center gap-2">
-                                <CheckCircle className="w-5 h-5" />
-                                {status}
-                            </div>
-                        ) : (
-                            status
-                        )}
-                    </div>
-                )}
             </div>
-        );
-    };
 
-    export default WorkerPhotoCapture;
+            {/* Status Feedback Toast */}
+            {status && (
+                <div className="fixed bottom-8 left-6 right-6 z-50">
+                    <div className={`p-4 rounded-2xl shadow-2xl backdrop-blur-md border border-white/20 text-center font-medium animate-in slide-in-from-bottom-4 fade-in ${status.includes('Error') ? 'bg-red-500/90 text-white' : 'bg-primary-black/90 text-white'
+                        }`}>
+                        {status.includes('Saved') ? (
+                            <div className="flex items-center justify-center gap-3">
+                                <CheckCircle className="w-5 h-5 text-green-400" />
+                                <span>{status}</span>
+                            </div>
+                        ) : status}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default WorkerPhotoCapture;
