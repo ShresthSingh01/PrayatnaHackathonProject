@@ -1,0 +1,533 @@
+{
+    "metro": [
+        {
+            "id": "m01",
+            "name": "Site Survey & Geotech Analysis",
+            "expectedDays": 15,
+            "dependencies": []
+        },
+        {
+            "id": "m02",
+            "name": "Utility Diversion",
+            "expectedDays": 30,
+            "dependencies": [
+                "m01"
+            ]
+        },
+        {
+            "id": "m03",
+            "name": "Excavation & Shoring",
+            "expectedDays": 45,
+            "dependencies": [
+                "m02"
+            ]
+        },
+        {
+            "id": "m04",
+            "name": "Tunnel Boring Machine Launch",
+            "expectedDays": 10,
+            "dependencies": [
+                "m03"
+            ]
+        },
+        {
+            "id": "m05",
+            "name": "Tunneling Phase 1",
+            "expectedDays": 90,
+            "dependencies": [
+                "m04"
+            ]
+        },
+        {
+            "id": "m06",
+            "name": "Station Box Foundation",
+            "expectedDays": 60,
+            "dependencies": [
+                "m03"
+            ]
+        },
+        {
+            "id": "m07",
+            "name": "Station Columns & Structure",
+            "expectedDays": 75,
+            "dependencies": [
+                "m06"
+            ]
+        },
+        {
+            "id": "m08",
+            "name": "Tunneling Phase 2",
+            "expectedDays": 90,
+            "dependencies": [
+                "m05"
+            ]
+        },
+        {
+            "id": "m09",
+            "name": "Track Bed Concreting",
+            "expectedDays": 40,
+            "dependencies": [
+                "m05",
+                "m08"
+            ]
+        },
+        {
+            "id": "m10",
+            "name": "Rail Installation",
+            "expectedDays": 45,
+            "dependencies": [
+                "m09"
+            ]
+        },
+        {
+            "id": "m11",
+            "name": "Station Roof & Platform",
+            "expectedDays": 50,
+            "dependencies": [
+                "m07"
+            ]
+        },
+        {
+            "id": "m12",
+            "name": "Electrical Substations",
+            "expectedDays": 60,
+            "dependencies": [
+                "m07"
+            ]
+        },
+        {
+            "id": "m13",
+            "name": "Overhead Electrification (OHE)",
+            "expectedDays": 50,
+            "dependencies": [
+                "m10"
+            ]
+        },
+        {
+            "id": "m14",
+            "name": "Signaling System Installation",
+            "expectedDays": 70,
+            "dependencies": [
+                "m10"
+            ]
+        },
+        {
+            "id": "m15",
+            "name": "Station Interiors & Finishing",
+            "expectedDays": 60,
+            "dependencies": [
+                "m11"
+            ]
+        },
+        {
+            "id": "m16",
+            "name": "Escalators & Lifts",
+            "expectedDays": 30,
+            "dependencies": [
+                "m15"
+            ]
+        },
+        {
+            "id": "m17",
+            "name": "Ticket Vending Systems",
+            "expectedDays": 20,
+            "dependencies": [
+                "m15"
+            ]
+        },
+        {
+            "id": "m18",
+            "name": "Rolling Stock Testing",
+            "expectedDays": 30,
+            "dependencies": [
+                "m13",
+                "m14"
+            ]
+        },
+        {
+            "id": "m19",
+            "name": "Safety & Fire Inspection",
+            "expectedDays": 15,
+            "dependencies": [
+                "m15",
+                "m18"
+            ]
+        },
+        {
+            "id": "m20",
+            "name": "Final Commissioning",
+            "expectedDays": 10,
+            "dependencies": [
+                "m19"
+            ]
+        }
+    ],
+    "building": [
+        {
+            "id": "b01",
+            "name": "Site Preparation & Excavation",
+            "expectedDays": 14,
+            "dependencies": []
+        },
+        {
+            "id": "b02",
+            "name": "Foundation Pouting",
+            "expectedDays": 21,
+            "dependencies": [
+                "b01"
+            ]
+        },
+        {
+            "id": "b03",
+            "name": "Structural Framing (Steel/Concrete)",
+            "expectedDays": 45,
+            "dependencies": [
+                "b02"
+            ]
+        },
+        {
+            "id": "b04",
+            "name": "Floor Slabs Pouring",
+            "expectedDays": 28,
+            "dependencies": [
+                "b03"
+            ]
+        },
+        {
+            "id": "b05",
+            "name": "Roof Installation",
+            "expectedDays": 21,
+            "dependencies": [
+                "b03"
+            ]
+        },
+        {
+            "id": "b06",
+            "name": "Exterior Walls & Cladding",
+            "expectedDays": 35,
+            "dependencies": [
+                "b04",
+                "b05"
+            ]
+        },
+        {
+            "id": "b07",
+            "name": "Window & Door Installation",
+            "expectedDays": 20,
+            "dependencies": [
+                "b06"
+            ]
+        },
+        {
+            "id": "b08",
+            "name": "Rough Plumbing & Electrical",
+            "expectedDays": 30,
+            "dependencies": [
+                "b04"
+            ]
+        },
+        {
+            "id": "b09",
+            "name": "HVAC System Installation",
+            "expectedDays": 25,
+            "dependencies": [
+                "b05",
+                "b08"
+            ]
+        },
+        {
+            "id": "b10",
+            "name": "Insulation & Drywall",
+            "expectedDays": 20,
+            "dependencies": [
+                "b08",
+                "b09"
+            ]
+        },
+        {
+            "id": "b11",
+            "name": "Interior Painting",
+            "expectedDays": 15,
+            "dependencies": [
+                "b10"
+            ]
+        },
+        {
+            "id": "b12",
+            "name": "Flooring & Tiling",
+            "expectedDays": 20,
+            "dependencies": [
+                "b11"
+            ]
+        },
+        {
+            "id": "b13",
+            "name": "Cabinetry & Fixtures",
+            "expectedDays": 20,
+            "dependencies": [
+                "b12"
+            ]
+        },
+        {
+            "id": "b14",
+            "name": "Final Electrical & Plumbing Trim",
+            "expectedDays": 10,
+            "dependencies": [
+                "b13"
+            ]
+        },
+        {
+            "id": "b15",
+            "name": "Final Walkthrough & Handover",
+            "expectedDays": 5,
+            "dependencies": [
+                "b14"
+            ]
+        }
+    ],
+    "road": [
+        {
+            "id": "r01",
+            "name": "Topographic Survey",
+            "expectedDays": 7,
+            "dependencies": []
+        },
+        {
+            "id": "r02",
+            "name": "Clearing & Grubbing",
+            "expectedDays": 14,
+            "dependencies": [
+                "r01"
+            ]
+        },
+        {
+            "id": "r03",
+            "name": "Earthwork & Grading",
+            "expectedDays": 30,
+            "dependencies": [
+                "r02"
+            ]
+        },
+        {
+            "id": "r04",
+            "name": "Drainage Pipe Installation",
+            "expectedDays": 20,
+            "dependencies": [
+                "r03"
+            ]
+        },
+        {
+            "id": "r05",
+            "name": "Sub-base Stabilization",
+            "expectedDays": 15,
+            "dependencies": [
+                "r03",
+                "r04"
+            ]
+        },
+        {
+            "id": "r06",
+            "name": "Base Course Laying",
+            "expectedDays": 15,
+            "dependencies": [
+                "r05"
+            ]
+        },
+        {
+            "id": "r07",
+            "name": "Asphalt Paving (Binder Course)",
+            "expectedDays": 10,
+            "dependencies": [
+                "r06"
+            ]
+        },
+        {
+            "id": "r08",
+            "name": "Curb & Gutter Construction",
+            "expectedDays": 20,
+            "dependencies": [
+                "r06"
+            ]
+        },
+        {
+            "id": "r09",
+            "name": "Asphalt Paving (Wearing Course)",
+            "expectedDays": 10,
+            "dependencies": [
+                "r07",
+                "r08"
+            ]
+        },
+        {
+            "id": "r10",
+            "name": "Road Marking & Striping",
+            "expectedDays": 5,
+            "dependencies": [
+                "r09"
+            ]
+        },
+        {
+            "id": "r11",
+            "name": "Signage & Lighting",
+            "expectedDays": 10,
+            "dependencies": [
+                "r09"
+            ]
+        },
+        {
+            "id": "r12",
+            "name": "Landscaping & Cleanup",
+            "expectedDays": 7,
+            "dependencies": [
+                "r10",
+                "r11"
+            ]
+        }
+    ],
+    "bridge": [
+        {
+            "id": "br01",
+            "name": "Hydrological Survey",
+            "expectedDays": 10,
+            "dependencies": []
+        },
+        {
+            "id": "br02",
+            "name": "Cofferdam Construction",
+            "expectedDays": 25,
+            "dependencies": [
+                "br01"
+            ]
+        },
+        {
+            "id": "br03",
+            "name": "Pile Driving / Foundation",
+            "expectedDays": 40,
+            "dependencies": [
+                "br02"
+            ]
+        },
+        {
+            "id": "br04",
+            "name": "Pile Cap Concreting",
+            "expectedDays": 20,
+            "dependencies": [
+                "br03"
+            ]
+        },
+        {
+            "id": "br05",
+            "name": "Pier Shaft Construction",
+            "expectedDays": 35,
+            "dependencies": [
+                "br04"
+            ]
+        },
+        {
+            "id": "br06",
+            "name": "Pier Cap Construction",
+            "expectedDays": 20,
+            "dependencies": [
+                "br05"
+            ]
+        },
+        {
+            "id": "br07",
+            "name": "Bearing Installation",
+            "expectedDays": 10,
+            "dependencies": [
+                "br06"
+            ]
+        },
+        {
+            "id": "br08",
+            "name": "Girder Fabrication (Offsite)",
+            "expectedDays": 60,
+            "dependencies": [
+                "br01"
+            ]
+        },
+        {
+            "id": "br09",
+            "name": "Girder Launching / Erection",
+            "expectedDays": 30,
+            "dependencies": [
+                "br07",
+                "br08"
+            ]
+        },
+        {
+            "id": "br10",
+            "name": "Deck Slab Formwork",
+            "expectedDays": 15,
+            "dependencies": [
+                "br09"
+            ]
+        },
+        {
+            "id": "br11",
+            "name": "Deck Reinforcement & Concreting",
+            "expectedDays": 25,
+            "dependencies": [
+                "br10"
+            ]
+        },
+        {
+            "id": "br12",
+            "name": "Expansion Joint Installation",
+            "expectedDays": 10,
+            "dependencies": [
+                "br11"
+            ]
+        },
+        {
+            "id": "br13",
+            "name": "Crash Barrier Construction",
+            "expectedDays": 20,
+            "dependencies": [
+                "br11"
+            ]
+        },
+        {
+            "id": "br14",
+            "name": "Waterproofing",
+            "expectedDays": 10,
+            "dependencies": [
+                "br12"
+            ]
+        },
+        {
+            "id": "br15",
+            "name": "Wearing Course (Asphalt)",
+            "expectedDays": 7,
+            "dependencies": [
+                "br14"
+            ]
+        },
+        {
+            "id": "br16",
+            "name": "Approach Road Connection",
+            "expectedDays": 20,
+            "dependencies": [
+                "br15"
+            ]
+        },
+        {
+            "id": "br17",
+            "name": "Lighting & Electricals",
+            "expectedDays": 15,
+            "dependencies": [
+                "br13"
+            ]
+        },
+        {
+            "id": "br18",
+            "name": "Load Testing & Inauguration",
+            "expectedDays": 7,
+            "dependencies": [
+                "br16",
+                "br17"
+            ]
+        }
+    ]
+}
