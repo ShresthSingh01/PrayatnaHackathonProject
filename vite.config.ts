@@ -12,9 +12,13 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: true
+        enabled: false // Disable PWA in dev to prevent caching old versions
       },
       manifest: false // Using manual public/manifest.json
     })
   ],
+  server: {
+    host: true,
+    port: 5174,
+  }
 })

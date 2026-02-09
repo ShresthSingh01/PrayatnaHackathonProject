@@ -130,7 +130,7 @@ const EngineerDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-cream p-8 font-sans">
+        <div className="min-h-screen bg-cream p-4 md:p-8 font-sans">
             <WhatsAppAlert tasks={tasks.map(t => ({
                 ...t,
                 riskFlag: computeRiskScore({ id: t.id, name: t.name }, []).flag
@@ -138,12 +138,12 @@ const EngineerDashboard = () => {
             <div className="max-w-7xl mx-auto space-y-10">
 
                 {/* Header */}
-                <div className="flex justify-between items-end border-b border-gray-200 pb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-200 pb-6 gap-4">
                     <div>
-                        <h1 className="text-4xl font-serif text-primary-black tracking-tight mb-2">Engineer Dashboard</h1>
-                        <p className="text-gray-500 font-light">Overview of active construction sites</p>
+                        <h1 className="text-3xl md:text-4xl font-serif text-primary-black tracking-tight mb-2">Engineer Dashboard</h1>
+                        <p className="text-gray-500 font-light text-sm md:text-base">Overview of active construction sites</p>
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex flex-wrap gap-3 w-full md:w-auto">
                         <button
                             onClick={() => {
                                 if (confirm('Reset all demo data? This will clear your projects.')) {
@@ -151,13 +151,13 @@ const EngineerDashboard = () => {
                                     window.location.reload();
                                 }
                             }}
-                            className="text-xs text-red-400 hover:text-red-600 font-medium px-4 py-2"
+                            className="text-xs text-red-400 hover:text-red-600 font-medium px-4 py-2 border border-red-100 rounded-full md:border-none"
                         >
                             Reset Benchmark
                         </button>
                         <button
                             onClick={() => setShowNewProjectModal(true)}
-                            className="flex items-center gap-2 bg-primary-black text-white px-6 py-3 rounded-full hover:bg-gray-800 transition-colors shadow-lg shadow-black/5"
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-primary-black text-white px-6 py-3 rounded-full hover:bg-gray-800 transition-colors shadow-lg shadow-black/5 text-sm md:text-base"
                         >
                             <Plus className="w-4 h-4" />
                             New Project

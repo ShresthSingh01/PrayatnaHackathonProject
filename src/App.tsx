@@ -4,7 +4,7 @@ import WorkerPhotoCapture from './components/WorkerPhotoCapture'
 import './App.css'
 
 const LandingPage = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-cream">
+  <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-6 bg-cream">
     <div className="w-full max-w-md space-y-12">
       {/* Header */}
       <div className="text-center space-y-6">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Camera, MapPin, QrCode, Wifi, WifiOff, UploadCloud, CheckCircle } from 'lucide-react';
+import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode';
+import { MapPin, QrCode, UploadCloud, CheckCircle } from 'lucide-react';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { useFirebase } from '../hooks/useFirebase';
 import { useParams } from 'react-router-dom';
@@ -13,8 +13,26 @@ const WorkerPhotoCapture = () => {
     const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
 
     const { addToQueue, isOnline, syncStatus, pendingCount } = useOfflineQueue();
-    const { addDocument } = useFirebase(); // Need direct DB access for metadata
+    const { } = useFirebase(); // Need direct DB access for metadata
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+
+    // File Scan Handler
+    const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const html5QrCode = new Html5Qrcode("reader-hidden");
+            const result = await html5QrCode.scanFileV2(file, true);
+            if (result && result.decodedText) {
+                console.log("QR File Scanned:", result.decodedText);
+                setProjectId(result.decodedText);
+            }
+        } catch (err) {
+            console.error("Error scanning file:", err);
+            alert("Could not read QR code. Please try a clearer image or enter ID manually.");
+        }
+    };
 
     // Sync state if URL param changes
     useEffect(() => {
@@ -25,29 +43,38 @@ const WorkerPhotoCapture = () => {
     }, [urlProjectId]);
 
     useEffect(() => {
+        let scanner: Html5QrcodeScanner | null = null;
+
         if (scanning && !scannerRef.current) {
             // Initialize scanner
-            const scanner = new Html5QrcodeScanner(
-                "reader",
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-            );
+            try {
+                scanner = new Html5QrcodeScanner(
+                    "reader",
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+            /* verbose= */ false
+                );
 
-            scanner.render((decodedText) => {
-                setProjectId(decodedText);
+                scanner.render((decodedText) => {
+                    console.log("QR Code Scanned:", decodedText);
+                    setProjectId(decodedText);
+                    setScanning(false);
+                    scanner?.clear().catch(e => console.warn("Failed to clear scanner", e));
+                    scannerRef.current = null;
+                }, (_error) => {
+                    // console.warn(error);
+                });
+
+                scannerRef.current = scanner;
+            } catch (e) {
+                console.error("Scanner initialization failed:", e);
+                setStatus("Scanner failed. Please enter ID manually.");
                 setScanning(false);
-                scanner.clear();
-                scannerRef.current = null;
-            }, (error) => {
-                console.warn(error);
-            });
-
-            scannerRef.current = scanner;
+            }
         }
 
         return () => {
             if (scannerRef.current) {
-                scannerRef.current.clear().catch(console.error);
+                scannerRef.current.clear().catch(e => console.warn("Cleanup error", e));
                 scannerRef.current = null;
             }
         };
@@ -78,11 +105,10 @@ const WorkerPhotoCapture = () => {
         }
     };
 
-    const processFile = async (file: File, coords: GeolocationCoordinates | null) => {
+    const processFile = async (file: File, _coords: GeolocationCoordinates | null) => {
         setStatus('Processing...');
 
         // Construct path: projects/{projectId}/{timestamp}_{filename}
-        // We assume projectId is valid folder name
         const path = `projects/${projectId}/${Date.now()}_${file.name}`;
 
         try {
@@ -144,15 +170,58 @@ const WorkerPhotoCapture = () => {
                                     </button>
                                 </div>
                             ) : (
-                                <button
-                                    onClick={() => setScanning(true)}
-                                    className="w-full aspect-square rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-4 group hover:border-primary-black hover:bg-white transition-all bg-white shadow-sm"
-                                >
-                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <QrCode className="w-8 h-8 text-primary-black" />
+                                <div className="space-y-6">
+                                    <button
+                                        onClick={() => setScanning(true)}
+                                        className="w-full aspect-square rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-4 group hover:border-primary-black hover:bg-white transition-all bg-white shadow-sm"
+                                    >
+                                        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <QrCode className="w-8 h-8 text-primary-black" />
+                                        </div>
+                                        <span className="font-medium text-gray-600 group-hover:text-primary-black">Scan Project QR</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Manual Fallback & File Upload */}
+                            {!scanning && !projectId && (
+                                <div className="mt-6 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 space-y-6">
+
+                                    {/* Hidden Reader for File Scan */}
+                                    <div id="reader-hidden" className="hidden"></div>
+
+                                    <div className="text-center">
+                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Or use screenshot</p>
+                                        <label className="block w-full py-3 px-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm font-medium text-gray-700 cursor-pointer transition-colors border border-gray-200 text-center border-dashed">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <UploadCloud className="w-4 h-4" />
+                                                <span>Upload QR Image</span>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={handleQrUpload}
+                                            />
+                                        </label>
                                     </div>
-                                    <span className="font-medium text-gray-600 group-hover:text-primary-black">Scan Project QR</span>
-                                </button>
+
+                                    <div className="border-t border-gray-100 pt-6">
+                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 text-center">Or enter manually</p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Project ID (e.g. demo)"
+                                                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-black transition-colors"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        setProjectId((e.target as HTMLInputElement).value);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     ) : (

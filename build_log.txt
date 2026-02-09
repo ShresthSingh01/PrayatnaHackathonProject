@@ -1,0 +1,12 @@
+﻿src/components/ErrorBoundary.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/ErrorBoundary.tsx(1,28): error TS1484: 'ErrorInfo' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ErrorBoundary.tsx(1,39): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/WorkerPhotoCapture.tsx(3,10): error TS6133: 'Camera' is declared but its value is never read.
+src/components/WorkerPhotoCapture.tsx(3,34): error TS6133: 'Wifi' is declared but its value is never read.
+src/components/WorkerPhotoCapture.tsx(3,40): error TS6133: 'WifiOff' is declared but its value is never read.
+src/components/WorkerPhotoCapture.tsx(16,11): error TS6133: 'addDocument' is declared but its value is never read.
+src/components/WorkerPhotoCapture.tsx(63,21): error TS6133: 'error' is declared but its value is never read.
+src/components/WorkerPhotoCapture.tsx(108,44): error TS6133: 'coords' is declared but its value is never read.
+src/hooks/useFirebase.ts(14,31): error TS6133: 'useRef' is declared but its value is never read.
+src/hooks/useFirebase.ts(98,22): error TS2783: 'id' is specified more than once, so this usage will be overwritten.
+src/lib/delayLogic.ts(25,34): error TS6133: 'task' is declared but its value is never read.

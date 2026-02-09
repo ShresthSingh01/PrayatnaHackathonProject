@@ -22,7 +22,7 @@ const SIMILARITY_WEIGHT = 0.4;
 const QUANTITY_WEIGHT = 0.3;
 const TARGET_PHOTO_COUNT = 3;
 
-export const computeRiskScore = (task: Task, photos: AnalyzedPhoto[]): RiskResult => {
+export const computeRiskScore = (_task: Task, photos: AnalyzedPhoto[]): RiskResult => {
     if (!photos || photos.length === 0) {
         return {
             score: 0,

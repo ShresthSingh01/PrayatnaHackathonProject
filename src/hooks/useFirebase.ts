@@ -11,7 +11,7 @@ import {
     type WithFieldValue
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 // Initialize Firebase
 const firebaseConfig = {
@@ -95,7 +95,7 @@ export const useFirebase = () => {
             const newId = 'mock-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
             const newDoc = { id: newId, ...data };
             updateMockDB(collectionName, newDoc);
-            return { id: newId, ...newDoc } as any;
+            return { ...newDoc } as any;
         }
         return firestoreAddDoc(collection(db, collectionName), data);
     };
