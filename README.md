@@ -72,16 +72,5 @@ Access at `http://localhost:5173`
 
 ---
 
-## 🔧 Troubleshooting
-
-**1. Camera Not Working?**
-- Use the **"Upload QR Image"** or **"Enter ID Manually"** options in the Worker App.
-
-**2. Data Not Saving?**
-- The app uses `localStorage` in Demo Mode. Verify browser storage permissions.
-- Click **"Reset Benchmark"** on the dashboard to clear all data and restart.
-
-**3. Offline Mode Testing**
-- Use Chrome DevTools -> Application -> Service Workers -> "Offline" to simulate network loss.
-- Upload photos; they will queue and sync when "Online" is unchecked.
+#Complete Demo App for Hackathon Purpose
 
